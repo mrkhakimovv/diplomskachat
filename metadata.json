@@ -1,0 +1,6 @@
+{
+  "name": "Diplomlar Bazasi",
+  "description": "Diplomlarning elektron versiyasini yuklash, QR kod yaratish va bazada saqlash uchun tizim.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
