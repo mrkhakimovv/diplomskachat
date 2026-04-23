@@ -1,10 +1,3 @@
-import localforage from 'localforage';
-
-localforage.config({
-  name: 'DiplomlarBazasi',
-  storeName: 'diplomas',
-});
-
 export interface Diploma {
   id: string;
   studentName: string;
@@ -17,23 +10,23 @@ export interface Diploma {
   downloads?: number;
 }
 
-const notifyAdmin = (action: 'UPLOAD' | 'DELETE' | 'DOWNLOAD', diploma: Partial<Diploma>, fileData?: string) => {
-  fetch('/api/notify', {
+export const saveDiploma = async (diploma: Diploma): Promise<void> => {
+  await fetch('/api/diplomas', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, diploma, fileData })
-  }).catch(console.error);
-};
-
-export const saveDiploma = async (diploma: Diploma): Promise<void> => {
-  const existing = await getDiplomas();
-  await localforage.setItem('diplomas', [diploma, ...existing]);
-  notifyAdmin('UPLOAD', diploma, diploma.fileData);
+    body: JSON.stringify(diploma)
+  });
 };
 
 export const getDiplomas = async (): Promise<Diploma[]> => {
-  const data = await localforage.getItem<Diploma[]>('diplomas');
-  return data || [];
+  try {
+    const res = await fetch('/api/diplomas');
+    if (!res.ok) return [];
+    return await res.json();
+  } catch (error) {
+    console.error("Failed to load diplomas:", error);
+    return [];
+  }
 };
 
 export const getDiplomaById = async (id: string): Promise<Diploma | null> => {
@@ -42,27 +35,21 @@ export const getDiplomaById = async (id: string): Promise<Diploma | null> => {
 };
 
 export const incrementDownload = async (id: string): Promise<void> => {
-  const diplomas = await getDiplomas();
-  let diplomaInfo = null;
-  const updatedDiplomas = diplomas.map(d => {
-    if (d.id === id) {
-      diplomaInfo = { ...d };
-      return { ...d, downloads: (d.downloads || 0) + 1 };
-    }
-    return d;
-  });
-  await localforage.setItem('diplomas', updatedDiplomas);
-  if (diplomaInfo) {
-    notifyAdmin('DOWNLOAD', diplomaInfo);
+  try {
+    await fetch(`/api/diplomas/${id}/download`, {
+      method: 'POST'
+    });
+  } catch (error) {
+    console.error("Failed to increment download counter:", error);
   }
 };
 
 export const deleteDiploma = async (id: string): Promise<void> => {
-  const diplomas = await getDiplomas();
-  const diploma = diplomas.find(d => d.id === id);
-  const filtered = diplomas.filter((d) => d.id !== id);
-  await localforage.setItem('diplomas', filtered);
-  if (diploma) {
-    notifyAdmin('DELETE', diploma);
+  try {
+    await fetch(`/api/diplomas/${id}`, {
+      method: 'DELETE'
+    });
+  } catch (error) {
+    console.error("Failed to delete diploma:", error);
   }
 };
